@@ -129,11 +129,20 @@ class HACollector {
 
       const logs = [];
       
+      const parseTimestamp = (line) => {
+        const isoMatch = line.match(/(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)/);
+        if (isoMatch) {
+          const parsed = new Date(isoMatch[1]);
+          if (!isNaN(parsed.getTime())) return parsed.toISOString();
+        }
+        return new Date().toISOString();
+      };
+
       const parseLogs = (raw, source) => {
         if (!raw || !raw.data || typeof raw.data !== 'string') return;
         const lines = raw.data.split('\n').filter(l => l.trim());
         const recent = lines.slice(-50);
-        
+
         for (const line of recent) {
           let level = 'info';
           if (line.includes('ERROR') || line.includes('error')) level = 'error';
@@ -144,7 +153,7 @@ class HACollector {
             level,
             source,
             message: line.substring(0, 2000),
-            loggedAt: new Date().toISOString(),
+            loggedAt: parseTimestamp(line),
           });
         }
       };
@@ -164,28 +173,33 @@ class HACollector {
       const response = await this.request(`${this.supervisorUrl}/addons`);
       const addons = response?.data?.data?.addons || [];
 
-      const statuses = [];
-      for (const addon of addons) {
-        let addonInfo = null;
-        try {
-          const detail = await this.request(`${this.supervisorUrl}/addons/${addon.slug}/info`);
-          addonInfo = detail?.data?.data;
-        } catch (e) {}
+      const detailResults = await Promise.all(
+        addons.map(addon =>
+          this.request(`${this.supervisorUrl}/addons/${addon.slug}/info`)
+            .then(detail => ({ slug: addon.slug, data: detail?.data?.data }))
+            .catch(() => ({ slug: addon.slug, data: null }))
+        )
+      );
 
-        statuses.push({
+      const detailMap = {};
+      for (const result of detailResults) {
+        detailMap[result.slug] = result.data;
+      }
+
+      return addons.map(addon => {
+        const addonInfo = detailMap[addon.slug];
+        return {
           slug: addon.slug,
           name: addon.name || addon.slug,
           version: addon.version || addonInfo?.version || 'unknown',
           state: addon.state || addonInfo?.state || 'unknown',
           description: addon.description || addonInfo?.description || '',
-          installError: addonInfo?.boot === 'manual' && addonInfo?.state === 'stopped' 
+          installError: addonInfo?.boot === 'manual' && addonInfo?.state === 'stopped'
             ? 'Add-on stopped (manual boot)' : null,
           lastStarted: addonInfo?.last_boot || null,
           recordedAt: new Date().toISOString(),
-        });
-      }
-
-      return statuses;
+        };
+      });
     } catch (error) {
       console.error('[Collector] Failed to get addon statuses:', error.message);
       return [];

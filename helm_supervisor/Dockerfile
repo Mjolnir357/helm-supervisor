@@ -10,6 +10,4 @@ RUN npm install --production
 
 COPY src/ ./src/
 
-COPY rootfs /
-
 CMD ["node", "src/index.js"]

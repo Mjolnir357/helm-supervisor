@@ -29,7 +29,7 @@ All data is securely synced to your Helm dashboard where you can view and analyz
 2. Click the **three-dot menu** (top right) > **Repositories**
 3. Add this repository URL:
    ```
-   https://github.com/YOUR_USERNAME/helm-supervisor
+   https://github.com/Mjolnir357/helm-supervisor
    ```
 4. Click **Add** then **Close**
 

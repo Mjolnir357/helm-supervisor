@@ -2,7 +2,7 @@ name: "Helm Supervisor"
 description: "Monitoring, logging, and diagnostics collector for Helm Smart Home Dashboard"
 version: "1.0.0"
 slug: "helm_supervisor"
-url: "https://github.com/helm-smart-home/helm-supervisor"
+url: "https://github.com/Mjolnir357/helm-supervisor"
 arch:
   - aarch64
   - amd64
@@ -28,4 +28,3 @@ schema:
   collect_performance_metrics: bool
   collect_addon_status: bool
   log_level: "list(debug|info|warn|error)"
-image: "ghcr.io/helm-smart-home/helm-supervisor-{arch}"
